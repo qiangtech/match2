@@ -320,11 +320,11 @@ static int check_patity(int num)
     part_bit = bits/2;
     one_number = 0;
 
-    if((data&0xffffff00)!=0)
+/*    if((data&0xffffff00)!=0)
     {
         return 0;
     }
-
+*/
     if(bits%2)
     {
         part_bit++;
@@ -336,28 +336,45 @@ static int check_patity(int num)
             one_number++;
         }
     }
+    if((one_number%2)==0)
+    {
+        return 0;
+    }
+
+    one_number=0;
+    for(i=part_bit;i<bits;i++)
+    {
+        if((data&0x01<<i)!=0)
+        {
+            one_number++;
+        }
+    }
     if((one_number%2)!=0)
     {
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
-static void press_data(int data)
+static void press_data(unsigned long data)
 {
-    switch(data)
+    switch(data&0xff)
     {
         case 0x51:
         gpio_set_value( RELAY1_PIN ,1);
+        gpio_set_value( RD1_GLED_PIN ,1);
         break;
         case 0x52:
         gpio_set_value( RELAY2_PIN ,1);
+        gpio_set_value( RD2_GLED_PIN ,1);
         break;
         case 0x61:
         gpio_set_value( RELAY1_PIN ,0);
+        gpio_set_value( RD1_GLED_PIN ,0);
         break;
         case 0x62:
         gpio_set_value( RELAY2_PIN ,0);
+        gpio_set_value( RD2_GLED_PIN ,0);
         break;
         default:
         break;
@@ -384,10 +401,11 @@ static void wieganddata_handler(int num)
     {
         if((reader1_received_bits>=26)&&(reader1_received_bits<=37))   //26bits-37bits
         {
-            if(check_patity(1))
+            if(check_patity(1))  //valid data
             {
+                reader1_receiv_data &=((0x01<<(reader1_received_bits-1))^0xfffffffff);  //remove first patity
                 reader1_receiv_data >>=1; //remove last patity
-                press_data((int)(reader1_receiv_data&0xff));
+                press_data((unsigned long)(reader1_receiv_data));
                 
             }
         }
@@ -399,8 +417,9 @@ static void wieganddata_handler(int num)
         {
             if(check_patity(2))
             {
+                reader2_receiv_data &=((0x01<<(reader2_received_bits-1))^0xfffffffff);  //remove first patity
                 reader2_receiv_data >>=1; //remove last patity
-                press_data((int)(reader2_receiv_data&0xff));
+                press_data((unsigned long)(reader2_receiv_data));
                 
             }
         }
